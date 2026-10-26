@@ -1,4 +1,4 @@
-# Khel Samadhaan — Grievance Analytics
+# Grievience — Khel Samadhaan Grievance Analytics
 
 Public dashboard of CPGRAMS grievances received by the Ministry of Youth Affairs & Sports and SAI:
 volumes against the 21-day deadline, routing and bounces between offices, SAI handling, and what
@@ -28,7 +28,8 @@ a mobile number, email, Aadhaar or PAN, or a personal-data field, blocks the dep
 ## Deploy
 
 `.github/workflows/frontend.yml`:
-- **PR into `dev`/`main`**: type-check, build, PII gate.
+CI/CD runs for `dev` only.
+- **PR into `dev`**: type-check, build, PII gate.
 - **Push to `dev`**: the same gate, then the tested `dist/` is synced to S3 (hashed assets cached
   for a year; `index.html` and `data/*.json` set to no-cache) and CloudFront is invalidated.
 
