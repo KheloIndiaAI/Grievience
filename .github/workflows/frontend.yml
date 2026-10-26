@@ -69,9 +69,8 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: production
-      url: https://pgp.ccki.in
+    # No `environment:` here on purpose: an environment changes the OIDC sub claim to
+    # repo:ORG/REPO:environment:NAME, which the AWS trust (pinned to refs/heads/dev) rejects.
     permissions:
       id-token: write   # REQUIRED for OIDC
       contents: read
@@ -92,6 +91,20 @@ jobs:
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Print OIDC claims (debug — remove once trust works)
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import os, json, base64, urllib.request
+          req = urllib.request.Request(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=sts.amazonaws.com",
+                                       headers={"Authorization": "bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
+          tok = json.load(urllib.request.urlopen(req))["value"]
+          p = tok.split(".")[1]; p += "=" * (-len(p) % 4)
+          c = json.loads(base64.urlsafe_b64decode(p))
+          keep = ("sub", "aud", "repository", "ref", "environment", "job_workflow_ref")
+          print("### OIDC claims\n```json\n" + json.dumps({k: c.get(k) for k in keep}, indent=2) + "\n```")
+          PY
 
       - uses: actions/download-artifact@v4
         if: steps.cfg.outputs.ready == 'true'
