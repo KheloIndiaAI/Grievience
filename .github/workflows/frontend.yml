@@ -1,0 +1,131 @@
+# Dashboard CI/CD — derived from the AWS deploy kit's deploy-frontend.yml
+#
+#   pull request  -> quality gate only (type-check, build, PII scan)
+#   push to dev   -> quality gate -> deploy the SAME verified build to S3 + CloudFront
+#
+# Keyless: GitHub OIDC assumes the frontend deploy role; no AWS keys are stored.
+# Account-specific values live in repository VARIABLES (not in this file):
+#   AWS_REGION, FE_DEPLOY_ROLE_ARN, FRONTEND_BUCKET, CLOUDFRONT_DIST_ID
+# The kit's 03-provision-frontend.sh prints all four. Until they are set, the deploy job
+# is skipped with a notice instead of failing.
+name: frontend
+
+on:
+  push:
+    branches: [dev]
+    paths-ignore: ['**.md']
+  pull_request:
+    branches: [dev, main]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}   # never cancel a deploy mid-sync
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check and build
+        run: npm run build
+
+      - name: PII gate (dataset + built output)
+        run: python3 -I scripts/check_pii.py public/data/grievances.json dist
+
+      - name: Bundle report
+        run: |
+          {
+            echo "### Build"
+            echo '| file | size |'
+            echo '|---|---|'
+            find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.json' -o -name '*.html' \) \
+              -exec du -h {} \; | sort -rh | awk '{print "| " $2 " | " $1 " |"}'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    needs: quality-gate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://pgp.ccki.in
+    permissions:
+      id-token: write   # REQUIRED for OIDC
+      contents: read
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+      FE_ROLE: ${{ vars.FE_DEPLOY_ROLE_ARN }}
+      FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET }}
+      CLOUDFRONT_DIST_ID: ${{ vars.CLOUDFRONT_DIST_ID }}
+    steps:
+      - name: Check deployment variables
+        id: cfg
+        run: |
+          missing=""
+          for v in FE_ROLE FRONTEND_BUCKET CLOUDFRONT_DIST_ID; do [ -n "${!v}" ] || missing="$missing $v"; done
+          if [ -n "$missing" ]; then
+            echo "::notice::Deploy skipped — repository variables not set yet:$missing (run the AWS deploy kit's 03-provision-frontend.sh)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          name: dist
+          path: dist
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          role-to-assume: ${{ env.FE_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-${{ github.run_id }}
+
+      - name: Sync to S3
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          # content-hashed assets: immutable for a year; drop files no longer in the build
+          aws s3 sync dist/ "s3://$FRONTEND_BUCKET/" --delete \
+            --exclude "*.html" --exclude "*.json" \
+            --cache-control "public,max-age=31536000,immutable"
+          # entry point + data file are not hashed: always revalidate
+          aws s3 sync dist/ "s3://$FRONTEND_BUCKET/" \
+            --exclude "*" --include "*.html" --include "*.json" \
+            --cache-control "no-cache"
+
+      - name: Invalidate CloudFront
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DIST_ID" --paths "/*" \
+            --query 'Invalidation.Id' --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$CLOUDFRONT_DIST_ID" --id "$id"
+          echo "Deployed ${GITHUB_SHA::7} → https://pgp.ccki.in" >> "$GITHUB_STEP_SUMMARY"

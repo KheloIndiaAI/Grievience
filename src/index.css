@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97.5%;
+    --foreground: 222 30% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 9%;
+    --primary: 216 68% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 95%;
+    --secondary-foreground: 222 30% 14%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 9% 43%;
+    --accent: 214 60% 95%;
+    --accent-foreground: 216 68% 22%;
+    --destructive: 0 63% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 90%;
+    --input: 220 14% 88%;
+    --ring: 214 70% 45%;
+    --radius: 0.75rem;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 20% 25%;
+    --sidebar-border: 220 14% 91%;
+    --sidebar-accent: 214 60% 96%;
+
+    /* chart tokens — reference palette (validated) */
+    --chart-surface: #ffffff;
+    --chart-grid: #ebeae5;
+    --chart-axis: #c3c2b7;
+    --chart-ink: #52514e;
+    --chart-muted: #898781;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-6: #008300;
+    --series-7: #6250d6;
+    --series-8: #e34948;
+    --seq-250: #86b6ef;
+    --seq-350: #5598e7;
+    --seq-450: #2a78d6;
+    --seq-550: #1c5cab;
+    --seq-650: #104281;
+    --seq-700: #0d366b;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #d03b3b;
+    --good-ink: #006300;
+    --critical-ink: #b42323;
+    --warning-ink: #8a5a00;
+    --neutral-mark: #c9c8c1;
+  }
+
+  .dark {
+    --background: 228 12% 7%;
+    --foreground: 40 10% 93%;
+    --card: 228 10% 10%;
+    --card-foreground: 40 10% 93%;
+    --popover: 228 10% 11%;
+    --popover-foreground: 40 10% 93%;
+    --primary: 214 80% 62%;
+    --primary-foreground: 222 40% 8%;
+    --secondary: 228 8% 15%;
+    --secondary-foreground: 40 10% 90%;
+    --muted: 228 8% 15%;
+    --muted-foreground: 40 5% 62%;
+    --accent: 214 40% 18%;
+    --accent-foreground: 214 80% 80%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 228 8% 18%;
+    --input: 228 8% 20%;
+    --ring: 214 80% 62%;
+    --sidebar: 228 12% 8.5%;
+    --sidebar-foreground: 40 8% 80%;
+    --sidebar-border: 228 8% 15%;
+    --sidebar-accent: 214 30% 16%;
+
+    --chart-surface: #1a1a19;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #383835;
+    --chart-ink: #c3c2b7;
+    --chart-muted: #898781;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --seq-250: #184f95;
+    --seq-350: #1c5cab;
+    --seq-450: #2a78d6;
+    --seq-550: #3987e5;
+    --seq-650: #5598e7;
+    --seq-700: #86b6ef;
+    --good-ink: #36c236;
+    --critical-ink: #f07a7a;
+    --warning-ink: #f5c04a;
+    --neutral-mark: #4a4a46;
+  }
+
+  * { @apply border-border; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { @apply bg-background text-foreground font-sans; font-feature-settings: 'cv11', 'ss01'; }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+  .recharts-wrapper:focus, .recharts-surface:focus, .recharts-wrapper *:focus { outline: none; }
+  .recharts-cartesian-axis-tick-value { font-size: 11px; }
+  .recharts-default-tooltip { border-radius: 8px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .print-full { padding-left: 0 !important; }
+  body { background: #fff !important; }
+  main { max-width: none !important; padding: 0 12px !important; }
+  .rounded-xl { break-inside: avoid; }
+  @page { size: A4 landscape; margin: 10mm; }
+}

@@ -1,0 +1,28 @@
+# --- build / deps
+node_modules/
+dist/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+
+# --- local env / deploy-kit state (the kit lives outside this repo)
+*.local.env
+*.state
+
+# --- INTERNAL DATA: never commit (personal data of complainants) ---------------
+# Only public/data/grievances.json — the REDACTED dataset — belongs in git.
+# CI (scripts/check_pii.py) rejects anything else.
+*.xlsx
+*.xls
+*.csv
+**/grievances.internal.json
+**/grievances.public.json
+**/*_raw*.json
+analysis/
+CPGRAMS*
+
+# --- OS / editor
+.DS_Store
+~$*
+.vscode/
+.idea/
