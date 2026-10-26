@@ -28,9 +28,8 @@ a mobile number, email, Aadhaar or PAN, or a personal-data field, blocks the dep
 ## Deploy
 
 `.github/workflows/frontend.yml`:
-CI/CD runs for `dev` only.
-- **PR into `dev`**: type-check, build, PII gate.
-- **Push to `dev`**: the same gate, then the tested `dist/` is synced to S3 (hashed assets cached
+CI/CD runs on every push to `dev`, and on no other branch:
+- **Push to `dev`**: type-check, build, PII gate, then the tested `dist/` is synced to S3 (hashed assets cached
   for a year; `index.html` and `data/*.json` set to no-cache) and CloudFront is invalidated.
 
 AWS access is keyless through GitHub OIDC. The workflow reads the repository **variables**
