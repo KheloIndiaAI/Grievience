@@ -27,7 +27,7 @@ const SORTS = {
 }
 
 export function CasePanel({ spec, onClose }: { spec: CasePanelSpec | null; onClose: () => void }) {
-  const { open } = useStore()
+  const { open, showPII } = useStore()
   const tabs = spec?.tabs ?? (spec ? [{ label: 'All', rows: spec.rows ?? [] }] : [])
   const [tab, setTab] = React.useState(0)
   const [q, setQ] = React.useState('')
@@ -69,7 +69,7 @@ export function CasePanel({ spec, onClose }: { spec: CasePanelSpec | null; onClo
                   <SelectContent>{Object.entries(SORTS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
                 </Select>
                 <Button variant="outline" size="sm" disabled={!rows.length}
-                  onClick={() => downloadCSV(`${spec.title.replace(/[^\w]+/g, '_').slice(0, 60)}.csv`, rows.map((r) => toExportRow(r)))}>
+                  onClick={() => downloadCSV(`${spec.title.replace(/[^\w]+/g, '_').slice(0, 60)}.csv`, rows.map((r) => toExportRow(r, showPII)))}>
                   <Download />Export
                 </Button>
               </div>

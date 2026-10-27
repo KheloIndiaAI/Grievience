@@ -96,6 +96,8 @@ export interface Store {
   office: (code: string | null | undefined) => string
   /** Open the drill-down panel listing exactly these grievances. */
   showCases: (spec: CasePanelSpec) => void
+  /** internal dataset only: complainant names and contacts shown unmasked */
+  showPII: boolean
 }
 
 export interface CasePanelSpec {

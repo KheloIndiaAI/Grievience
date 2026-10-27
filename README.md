@@ -12,6 +12,7 @@ React 18 + Vite 5 + Tailwind + shadcn/ui (Radix) + Recharts. Static build, hash 
 npm ci
 npm run dev        # http://localhost:5173
 npm run build      # tsc -b && vite build -> dist/
+npm run dev:internal   # internal view with grievance text, local only (see data-pipeline/README.md)
 ```
 
 ## Data
@@ -28,10 +29,18 @@ committed here.
 `scripts/check_pii.py` runs in CI on the dataset and on the built `dist/`. Anything that looks like
 a mobile number, email, Aadhaar or PAN, or a personal-data field, blocks the deploy.
 
+## Internal view and data pipeline
+
+The same code also runs an **internal view** on a local machine: `npm run dev:internal` loads
+`private/grievances.internal.json` (git-ignored) and shows grievance and reply text, complainant
+details (masked until switched on) and full CSV exports. The mode follows the dataset's `redacted`
+flag. The internal file is served only by the dev server; `vite build` refuses to run with
+`VITE_DATA_URL` set. `data-pipeline/` holds the scripts that build it from a CPGRAMS export.
+
 ## Deploy
 
 `.github/workflows/frontend.yml`:
-CI/CD runs on every push to `dev`, and on no other branch:
+CI/CD runs on every push to `dev`; pull requests into `dev` get the same checks without deploying:
 - **Push to `dev`**: type-check, build, PII gate, then the tested `dist/` is synced to S3 (hashed assets cached
   for a year; `index.html` and `data/*.json` set to no-cache) and CloudFront is invalidated.
 

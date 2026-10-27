@@ -1,7 +1,8 @@
 # Dashboard CI/CD — derived from the AWS deploy kit's deploy-frontend.yml
 #
-# Runs on EVERY push to the dev branch, and nothing else:
+# Runs on every push to the dev branch, and as a check on pull requests into dev:
 #   push to dev -> quality gate (type-check, build, PII scan) -> deploy the SAME verified build to S3 + CloudFront
+#   pull request -> quality gate only (the deploy job is skipped)
 #
 # Keyless: GitHub OIDC assumes the frontend deploy role; no AWS keys are stored.
 # Account-specific values live in repository VARIABLES (not in this file):
@@ -12,6 +13,8 @@ name: frontend
 
 on:
   push:
+    branches: [dev]
+  pull_request:             # quality gate only (type-check, build, PII scan); never deploys
     branches: [dev]
   workflow_dispatch:        # manual re-run; deploys only when run on dev
 
