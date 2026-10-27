@@ -25,7 +25,7 @@ interface Lever {
 }
 
 export function ActionPage() {
-  const { rows, ds, showCases, office } = useStore()
+  const { rows, ds, showCases, office, showPII } = useStore()
   const h = headline(rows, ds.asOf)
   const D = rows.filter((r) => r.disposed)
   const wait = waitingByOffice(rows)
@@ -106,7 +106,7 @@ export function ActionPage() {
     <>
       <PageHeader eyebrow="Screen 4 of 4 · Action" title="What do we change, and what will it gain?"
         description="Five changes the data points to, each with its estimated effect and the grievances behind it. Estimates use the data in view and are upper bounds, not targets.">
-        <Button variant="outline" size="sm" onClick={() => downloadCSV('stuck_grievances.csv', stuck.map((r) => ({ ...toExportRow(r), 'Office holding': r.owner, 'Days since last action': r.idleDays })))}>
+        <Button variant="outline" size="sm" onClick={() => downloadCSV('stuck_grievances.csv', stuck.map((r) => ({ ...toExportRow(r, showPII), 'Office holding': r.owner, 'Days since last action': r.idleDays })))}>
           <Download />Stuck list (CSV)
         </Button>
       </PageHeader>

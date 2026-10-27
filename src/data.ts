@@ -18,8 +18,12 @@ export function transferBucket(t: number): string {
   return '6+'
 }
 
+/** Public build: the redacted file in public/data. `npm run dev:internal` points this at the
+ *  internal export, which the dev server serves from private/ (never copied into dist/). */
+export const DATA_URL: string = import.meta.env.VITE_DATA_URL || '/data/grievances.json'
+
 export async function loadData(): Promise<Dataset> {
-  const res = await fetch('/data/grievances.json')
+  const res = await fetch(DATA_URL)
   if (!res.ok) throw new Error(`Could not load data (${res.status})`)
   const ds: Dataset = await res.json()
   const off = ds.offices
@@ -48,6 +52,9 @@ export async function loadData(): Promise<Dataset> {
     r.saiSender = r.sai ? (r.sai.sender === 'SPSAI' ? 'SAI HQ (direct)' : name(r.sai.sender)) : null
     r.pathNamed = r.path.split(' > ').map((c) => name(c) ?? c).join(' → ')
     r.state = r.state || 'Not Known'
+    // internal dataset: the complainant key is the mobile number itself (never published)
+    if (!ds.redacted && r.cid == null) r.cid = r.mobile ?? null
+    if (r.email) r.email = r.email.trim().split(/\s+/)[0]
     // search never indexes personal identifiers, even on the internal dataset
     r._search = [r.id, r.description, r.reply, r.district, r.state, r.themeFull, r.catL1, r.catL2]
       .filter(Boolean).join(' \u0001 ').toLowerCase()
@@ -244,8 +251,32 @@ export function downloadCSV(filename: string, rows: Record<string, unknown>[]) {
   URL.revokeObjectURL(url)
 }
 
-/** CSV export row. Deliberately carries no personal identifiers or free text. */
-export const toExportRow = (r: Grievance) => ({
+// ------------------------------------------------------------ privacy (internal dataset only)
+export const maskName = (s: string | null | undefined) => {
+  if (!s) return '–'
+  return s.trim().split(/\s+/).map((w) => (w[0] ? w[0].toUpperCase() + '.' : '')).join(' ')
+}
+export const maskPhone = (s: string | null | undefined) => (s ? `••••••${s.slice(-4)}` : '–')
+export const maskEmail = (s: string | null | undefined) => {
+  if (!s) return '–'
+  const [u, d] = s.split('@')
+  return `${u.slice(0, 1)}•••@${d ?? ''}`
+}
+
+/** CSV export row. On the public dataset it carries no personal identifiers or free text
+ *  (there are none to carry). On the internal dataset it adds the grievance and reply text,
+ *  and complainant details: masked unless `showPII`. */
+export const toExportRow = (r: Grievance, showPII = false) => ({
+  ...baseExportRow(r),
+  ...(r.description !== undefined || r.reply !== undefined ? {
+    Complainant: showPII ? r.name ?? '' : maskName(r.name),
+    Mobile: showPII ? r.mobile ?? '' : maskPhone(r.mobile),
+    Email: showPII ? r.email ?? '' : maskEmail(r.email),
+    Description: r.description ?? '', 'Final Reply': r.reply ?? '',
+  } : {}),
+})
+
+const baseExportRow = (r: Grievance) => ({
   'Registration Number': r.id, 'Date of Receipt': r.receipt,
   State: r.state, District: r.district, Source: r.source, Channel: r.channel, Theme: r.theme,
   'Category L1': r.catL1, 'Category L2': r.catL2, Status: r.status, 'Closing Division': r.division,

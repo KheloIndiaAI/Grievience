@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowRight, ChevronLeft, ChevronRight, CornerDownLeft, FileText, Flag, Inbox, Send, ShieldCheck, Undo2, CheckCircle2, Clock3 } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, CornerDownLeft, FileText, Flag, Inbox, Lock, Send, ShieldCheck, Undo2, CheckCircle2, Clock3 } from 'lucide-react'
 import type { Grievance } from '@/types'
 import { useStore } from '@/store'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DaysPill, QualityPill, StatusPill } from './kit'
 import { SegmentBar } from '@/charts/Composite'
-import { fmt } from '@/data'
+import { fmt, maskEmail, maskName, maskPhone } from '@/data'
 import { fmtDate } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 import { grievanceGist } from './CasePanel'
@@ -39,7 +39,7 @@ export function CaseDialog({ item, onClose, onPrev, onNext, position }: {
   onNext?: () => void
   position?: string
 }) {
-  const { office, ds, open } = useStore()
+  const { office, ds, open, showPII } = useStore()
   const hasText = item?.description != null || item?.reply != null
   const saiSet = React.useMemo(() => new Set(ds.saiOffices), [ds])
   React.useEffect(() => {
@@ -154,10 +154,19 @@ export function CaseDialog({ item, onClose, onPrev, onNext, position }: {
                   )}
 
                   <div className="rounded-lg border p-4">
-                    <div className="mb-3 text-[13px] font-semibold">Where it came from</div>
+                    <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold">
+                      {ds.redacted ? 'Where it came from' : 'Complainant'}
+                      {!ds.redacted && !showPII && <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground"><Lock className="h-3 w-3" />masked</span>}
+                    </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
+                      {!ds.redacted && <>
+                        <KV label="Name">{showPII ? item.name ?? '–' : maskName(item.name)}</KV>
+                        <KV label="Mobile">{showPII ? item.mobile ?? '–' : maskPhone(item.mobile)}</KV>
+                        <KV label="Email">{showPII ? item.email ?? '–' : maskEmail(item.email)}</KV>
+                      </>}
                       <KV label="State / district">{item.state}{item.district ? ` · ${item.district}` : ''}</KV>
                       <KV label="Filings by the same citizen">{fmt(item.filings)}</KV>
+                      {!ds.redacted && showPII && item.address && <KV label="Address" wide>{item.address}</KV>}
                     </div>
                   </div>
                 </TabsContent>

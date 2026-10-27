@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {
-  LayoutDashboard, Tags, Route, Building2, Search, Workflow, Menu, Moon, Sun, Database, Printer, ShieldCheck,
+  LayoutDashboard, Tags, Route, Building2, Search, Workflow, Menu, Moon, Sun, Database, Printer, ShieldCheck, ShieldAlert, Eye, EyeOff,
 } from 'lucide-react'
 import type { Dataset, Grievance } from './types'
 import { loadData, fmt } from './data'
@@ -93,10 +93,15 @@ function SidebarFooter({ ds }: { ds: Dataset }) {
       <div className="mb-1 flex items-center gap-1.5 font-medium text-foreground"><Database className="h-3.5 w-3.5" />Data source</div>
       CPGRAMS export · {fmt(ds.records.length)} grievances received {fmtDate(min)} – {fmtDate(maxReceipt(ds))}, status as of {fmtDate(ds.asOf)}. Deadline used: {ds.slaDays} days.
       {ds.coverage?.map((c) => <span key={c.label}> {c.label} is a partial pull: {fmt(c.pulled)} of {fmt(c.listed)} grievances.</span>)}
-      {ds.redacted && (
+      {ds.redacted ? (
         <div className="mt-2 flex items-start gap-1.5 border-t pt-2">
           <ShieldCheck className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[var(--status-good)]" />
           <span>Public view. Complainant names, contact details and the text of grievances and replies are not published.</span>
+        </div>
+      ) : (
+        <div className="mt-2 flex items-start gap-1.5 border-t pt-2">
+          <ShieldAlert className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[var(--status-serious)]" />
+          <span><b className="font-medium text-foreground">Internal view.</b> Includes grievance and reply text and complainant details. For official use only; do not share screenshots or exports outside the Ministry.</span>
         </div>
       )}
     </div>
@@ -140,11 +145,12 @@ export function App() {
     window.scrollTo({ top: 0 })
   }, [])
 
+  const [showPII, setShowPII] = React.useState(false)
   const store: Store | null = React.useMemo(() => {
     if (!ds || !filters) return null
     const setOnly = (field: FilterField, values: string[]) => setFilters((p) => p && ({ ...p, sel: { ...p.sel, [field]: values } }))
     return {
-      ds, all: ds.records, rows, filters,
+      ds, all: ds.records, rows, filters, showPII: !ds.redacted && showPII,
       setFilters: (f) => setFilters((p) => (typeof f === 'function' ? f(p!) : f)),
       toggle: (field, value) => setFilters((p) => {
         if (!p) return p
@@ -166,7 +172,7 @@ export function App() {
       office: (c) => (c ? ds.offices[c] || c : '–'),
       showCases: (spec) => setPanel(spec),
     }
-  }, [ds, filters, rows, goto])
+  }, [ds, filters, rows, goto, showPII])
 
   if (error) {
     return <div className="flex min-h-screen items-center justify-center p-6 text-center"><div><h2 className="text-lg font-semibold">Could not load the dashboard</h2><p className="mt-1 text-sm text-muted-foreground">{error}</p></div></div>
@@ -223,6 +229,13 @@ export function App() {
                   <Hint label="Print this screen / save as PDF">
                     <Button variant="ghost" size="icon-sm" onClick={() => window.print()} aria-label="Print"><Printer /></Button>
                   </Hint>
+                  {!ds.redacted && (
+                    <Hint label={showPII ? 'Hide complainant names and contacts' : 'Show complainant names and contacts'}>
+                      <Button variant={showPII ? 'secondary' : 'ghost'} size="sm" onClick={() => setShowPII((v) => !v)} aria-pressed={showPII} aria-label="Personal details">
+                        {showPII ? <Eye /> : <EyeOff />}<span className="hidden 2xl:inline">{showPII ? 'Personal details shown' : 'Personal details hidden'}</span>
+                      </Button>
+                    </Hint>
+                  )}
                   <span className="mr-2 hidden items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 py-0.5 text-[11.5px] text-muted-foreground xl:inline-flex">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-good)]" />Data as of {fmtDate(ds.asOf)}
                   </span>

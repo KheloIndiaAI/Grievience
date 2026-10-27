@@ -10,6 +10,8 @@ __pycache__/
 *.state
 
 # --- INTERNAL DATA: never commit (personal data of complainants) ---------------
+# The internal dataset lives in private/ (served only by `npm run dev:internal`).
+private/
 # Only public/data/grievances.json — the REDACTED dataset — belongs in git.
 # CI (scripts/check_pii.py) rejects anything else.
 *.xlsx
