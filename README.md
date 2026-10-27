@@ -16,6 +16,9 @@ npm run build      # tsc -b && vite build -> dist/
 
 ## Data
 
+Coverage: grievances received 1 Jan 2022 – 21 Oct 2026, status as of 26 Oct 2026 (6,893 grievances; 2025 is a
+partial pull, which the dashboard notes from the dataset's `coverage` field).
+
 `public/data/grievances.json` is the **redacted** public dataset (`"redacted": true`). It has no
 names, contact details, addresses, complaint or reply text, or officer remarks. Complainants appear
 only as anonymous per-release codes (`cid`), and the re-filing fields are precomputed. The redacted

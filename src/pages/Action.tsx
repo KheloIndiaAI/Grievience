@@ -68,7 +68,7 @@ export function ActionPage() {
       icon: Route, title: 'Route each grievance to the right office first time',
       problem: <>{fmt(bounced.length)} grievances ({fmtPct(h.bouncedPct, 0)}) were sent back as “not pertaining”. Bounced cases take a median {fmt(medB)} days against {fmt(medN)}. Most returns come from {topBouncers.map((b) => office(b.code)).join(', ')}.</>,
       change: 'A one-page routing guide (subject → responsible office) at the PG desk, built from where bounced cases finally ended; any case bounced twice goes to the Director (PG).',
-      gain: <>Up to <b>{fmt(Math.max(0, medB - medN))}</b> days less for each grievance that is routed right — about {fmt(Math.max(0, medB - medN) * bounced.length)} citizen-days across Jan–Oct 2026.</>,
+      gain: <>Up to <b>{fmt(Math.max(0, medB - medN))}</b> days less for each grievance that is routed right — about {fmt(Math.max(0, medB - medN) * bounced.length)} citizen-days across the selected period.</>,
       rows: bounced, rowsLabel: 'Bounced grievances', preview: 'grievance',
     },
     {
@@ -87,7 +87,7 @@ export function ActionPage() {
     },
     {
       icon: MessageSquareReply, title: 'Send an interim reply at day 14',
-      problem: <>Only {fmt(interimSent)} grievances received an interim reply all year. {fmt(needInterim.length)} open grievances are older than 14 days with none.</>,
+      problem: <>Only {fmt(interimSent)} grievances received an interim reply in the selected period. {fmt(needInterim.length)} open grievances are older than 14 days with none.</>,
       change: 'Any grievance not closable by day 14 gets a short interim reply saying where it is and by when to expect an answer.',
       gain: <>Tells waiting citizens what is happening; repeat filings ({fmtPct(h.repeatPct, 0)} of all filings today) should fall.</>,
       rows: needInterim, rowsLabel: 'Open 14+ days without an interim reply', preview: 'grievance',
@@ -105,7 +105,7 @@ export function ActionPage() {
   return (
     <>
       <PageHeader eyebrow="Screen 4 of 4 · Action" title="What do we change, and what will it gain?"
-        description="Five changes the data points to, each with its estimated effect and the grievances behind it. Estimates use this year’s data and are upper bounds, not targets.">
+        description="Five changes the data points to, each with its estimated effect and the grievances behind it. Estimates use the data in view and are upper bounds, not targets.">
         <Button variant="outline" size="sm" onClick={() => downloadCSV('stuck_grievances.csv', stuck.map((r) => ({ ...toExportRow(r), 'Office holding': r.owner, 'Days since last action': r.idleDays })))}>
           <Download />Stuck list (CSV)
         </Button>
@@ -171,7 +171,7 @@ export function ActionPage() {
         { term: 'File-days freed', def: 'Days that out-of-mandate grievances waited with offices other than the entry desks (PG desk, PMO, DARPG, President’s Secretariat), summed.' },
         { term: 'Citizen-days saved', def: '(Median days of bounced grievances − median days of others) × number of bounced grievances. An upper bound: some cases would still need re-routing.' },
         { term: 'Points gained', def: 'Replies with no usable text that were sent within 21 days, as a share of matured grievances. If those replies had stated the action taken, they would count as answered.' },
-        { term: 'Estimates', def: 'Based on Jan–Oct 2026 grievances. They show the size of each lever, not a commitment or target.' },
+        { term: 'Estimates', def: 'Based on the grievances in the selected period. They show the size of each lever, not a commitment or target.' },
       ]} />
     </>
   )

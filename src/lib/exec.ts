@@ -72,7 +72,7 @@ export function headline(rows: Grievance[], asOf: string): Headline {
 
 export interface MonthFlow { key: string; received: number; disposed: number; answered: number; open: number; genuinePct: number | null; matured: boolean }
 
-/** In / out / open per month. Open stock starts at zero on 1 Jan (no 2025 backlog in the export). */
+/** In / out / open per month. Open stock starts at zero on 1 Jan (no backlog from before the first month in the export). */
 export function monthlyFlow(rows: Grievance[], asOf: string): MonthFlow[] {
   const months = [...new Set(rows.map((r) => r.month))].sort()
   const cut = new Date(Date.parse(asOf) - SLA * 86400000).toISOString().slice(0, 7)

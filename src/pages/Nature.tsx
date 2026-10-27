@@ -125,7 +125,7 @@ export function NaturePage() {
               items={cats.map((c) => ({ key: c.key, value: c.count, color: c.key === '(Not categorised)' ? 'var(--neutral-mark)' : 'var(--series-1)' }))}
               onSelect={(k) => setCat(k)} />
           </ChartCard>
-          <ChartCard title={activeCat ? `Sub-categories: ${activeCat}` : 'Sub-categories'} description="Click a sub-category to read its grievances. For “Sports Federations Related” these are the sports; football is mostly the AIFF U-15 coach campaign.">
+          <ChartCard title={activeCat ? `Sub-categories: ${activeCat}` : 'Sub-categories'} description="Click a sub-category to read its grievances. For “Sports Federations Related” these are the sports; football in 2026 is mostly the AIFF U-15 coach campaign.">
             <BarList limit={12} valueHeader="Grievances" color="var(--seq-450)"
               items={subs.map((s) => ({ key: s.key, label: s.key.charAt(0).toUpperCase() + s.key.slice(1), value: s.count }))}
               onSelect={(k) => panel(`${activeCat} › ${k}`, rows.filter((r) => r.catL1 === activeCat && (r.catL2 ?? 'No sub-category') === k))} />

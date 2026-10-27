@@ -84,12 +84,15 @@ function Nav({ page, goto, pending, saiPending }: { page: PageId; goto: (p: Page
   )
 }
 
+const maxReceipt = (ds: Dataset) => ds.records.reduce((m, r) => (r.receipt > m ? r.receipt : m), '0000')
+
 function SidebarFooter({ ds }: { ds: Dataset }) {
   const min = ds.records.reduce((m, r) => (r.receipt < m ? r.receipt : m), '9999')
   return (
     <div className="m-3 rounded-lg border bg-background/60 p-3 text-[11.5px] leading-relaxed text-muted-foreground">
       <div className="mb-1 flex items-center gap-1.5 font-medium text-foreground"><Database className="h-3.5 w-3.5" />Data source</div>
-      CPGRAMS export · {fmt(ds.records.length)} grievances received {fmtDate(min)} – {fmtDate(ds.asOf)}. Deadline used: {ds.slaDays} days.
+      CPGRAMS export · {fmt(ds.records.length)} grievances received {fmtDate(min)} – {fmtDate(maxReceipt(ds))}, status as of {fmtDate(ds.asOf)}. Deadline used: {ds.slaDays} days.
+      {ds.coverage?.map((c) => <span key={c.label}> {c.label} is a partial pull: {fmt(c.pulled)} of {fmt(c.listed)} grievances.</span>)}
       {ds.redacted && (
         <div className="mt-2 flex items-start gap-1.5 border-t pt-2">
           <ShieldCheck className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[var(--status-good)]" />

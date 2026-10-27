@@ -59,7 +59,7 @@ export function ColumnChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: showValues ? 20 : 8, right: 4, left: -12, bottom: 0 }} barCategoryGap="22%">
           <CartesianGrid {...GRID} />
-          <XAxis dataKey="label" {...AXIS} interval={0} tickMargin={6} />
+          <XAxis dataKey="label" {...AXIS} interval="preserveStartEnd" minTickGap={12} tickMargin={6} />
           <YAxis {...AXIS} axisLine={false} width={48} tickFormatter={(v) => format(v)} domain={[0, yMax ?? 'auto']} allowDecimals={false} />
           <Tooltip
             cursor={{ fill: 'hsl(var(--muted))', opacity: 0.6 }}
@@ -100,6 +100,8 @@ export function TrendChart({
   dashedFrom?: number
 }) {
   const solid = data.map((d, i) => ({ ...d, solid: dashedFrom != null && i >= dashedFrom ? null : d.value, prov: dashedFrom != null && i >= dashedFrom - 1 ? d.value : null }))
+  // with several years of months the dots merge into a band: draw the line only (hover still shows each point)
+  const dense = data.length > 30
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -111,7 +113,7 @@ export function TrendChart({
             </linearGradient>
           </defs>
           <CartesianGrid {...GRID} />
-          <XAxis dataKey="label" {...AXIS} interval={0} tickMargin={6} />
+          <XAxis dataKey="label" {...AXIS} interval="preserveStartEnd" minTickGap={12} tickMargin={6} />
           <YAxis {...AXIS} axisLine={false} width={48} tickFormatter={(v) => format(v)} domain={domain ?? [0, 'auto']} />
           <Tooltip
             cursor={{ stroke: 'var(--chart-axis)' }}
@@ -127,10 +129,10 @@ export function TrendChart({
             </ReferenceLine>
           )}
           {area
-            ? <Area type="monotone" dataKey="solid" stroke={color} strokeWidth={2} fill="url(#trendFill)" dot={{ r: 3, fill: color, strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
-            : <Line type="monotone" dataKey="solid" stroke={color} strokeWidth={2} dot={{ r: 3, fill: color, strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />}
+            ? <Area type="monotone" dataKey="solid" stroke={color} strokeWidth={2} fill="url(#trendFill)" dot={dense ? false : { r: 3, fill: color, strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
+            : <Line type="monotone" dataKey="solid" stroke={color} strokeWidth={2} dot={dense ? false : { r: 3, fill: color, strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />}
           {dashedFrom != null && (
-            <Line type="monotone" dataKey="prov" stroke={color} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, fill: 'var(--chart-surface)', stroke: color, strokeWidth: 1.5 }} isAnimationActive={false} />
+            <Line type="monotone" dataKey="prov" stroke={color} strokeWidth={2} strokeDasharray="4 4" dot={dense ? false : { r: 3, fill: 'var(--chart-surface)', stroke: color, strokeWidth: 1.5 }} isAnimationActive={false} />
           )}
         </ComposedChart>
       </ResponsiveContainer>
@@ -153,7 +155,7 @@ export function PairColumns({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }} barGap={2} barCategoryGap="24%">
           <CartesianGrid {...GRID} />
-          <XAxis dataKey="label" {...AXIS} interval={0} tickMargin={6} />
+          <XAxis dataKey="label" {...AXIS} interval="preserveStartEnd" minTickGap={12} tickMargin={6} />
           <YAxis {...AXIS} axisLine={false} width={44} allowDecimals={false} />
           <Tooltip
             cursor={{ fill: 'hsl(var(--muted))', opacity: 0.6 }}

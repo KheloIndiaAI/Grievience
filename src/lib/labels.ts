@@ -111,7 +111,7 @@ export const DAY_BUCKET_LABEL: Record<string, string> = {
 export const TRANSFER_BUCKETS = ['0', '1', '2', '3', '4-5', '6+']
 export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-export const monthLabel = (m: string) => `${MONTHS[Number(m.slice(5, 7)) - 1] ?? m}`
+export const monthLabel = (m: string) => `${MONTHS[Number(m.slice(5, 7)) - 1] ?? m} ’${m.slice(2, 4)}`
 export const monthLong = (m: string) => `${MONTHS[Number(m.slice(5, 7)) - 1] ?? m} ${m.slice(0, 4)}`
 export const fmtDate = (d: string | null | undefined) => {
   if (!d) return '–'

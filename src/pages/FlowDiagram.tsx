@@ -154,6 +154,21 @@ export function FlowDiagram({ spec, rows, lock, onLock, reveal }: {
     return { sub, hit }
   }, [sel, rows, spec])
 
+  // clicked (locked) node: every box shows how many of the selected grievances it holds
+  const picked = React.useMemo(() => {
+    if (!lock) return null
+    const cnt: Record<string, number> = {}, rs: Record<string, Grievance[]> = {}
+    let n = 0
+    for (const r of rows) {
+      const p = spec.pathOf(r)
+      if (!p.includes(lock)) continue
+      n++
+      p.forEach((k) => { cnt[k] = (cnt[k] ?? 0) + 1; (rs[k] ??= []).push(r) })
+    }
+    return { cnt, rs, n }
+  }, [lock, rows, spec])
+  const total = picked ? picked.n : L.N
+
   const color = (l: Link) => (l.stage === 2 ? spec.statusColor[l.t.slice(2)] : 'var(--accent)')
   const dots = React.useMemo(() => {
     if (!dotsOn || reduced()) return ''
@@ -203,7 +218,8 @@ export function FlowDiagram({ spec, rows, lock, onLock, reveal }: {
           <g className="fl-nodes">
             {L.cols.flatMap((col, ci) => col.map((key) => {
               const nd = L.nodes[key]
-              const share = L.N ? Math.round((nd.n / L.N) * 100) : 0
+              const shown = picked ? picked.cnt[key] ?? 0 : nd.n
+              const share = total ? Math.round((shown / total) * 100) : 0
               const cls = `fl-node c${ci}${nd.n === 0 ? ' empty' : ''}${trace?.hit[key] ? ' hit' : ''}${key === sel ? ' sel' : ''}`
               const events = {
                 onMouseEnter: () => setHover(key),
@@ -218,9 +234,9 @@ export function FlowDiagram({ spec, rows, lock, onLock, reveal }: {
                     )}
                     <g className="fl-lab" style={{ transform: `translate(0px,${f1(nd.ly - nd.y)}px)` }}>
                       <text className="fl-name" x={ci === 0 ? -14 : 26} y={-3} textAnchor={ci === 0 ? 'end' : 'start'}>{trunc(spec.name(key), ci === 0 ? 27 : 26)}<title>{spec.name(key)}</title></text>
-                      <text className="fl-sub" x={ci === 0 ? -14 : 26} y={14} textAnchor={ci === 0 ? 'end' : 'start'}>{nd.n.toLocaleString('en-IN')} · {share}%</text>
+                      <text className="fl-sub" x={ci === 0 ? -14 : 26} y={14} textAnchor={ci === 0 ? 'end' : 'start'}>{shown.toLocaleString('en-IN')} · {share}%</text>
                     </g>
-                    <title>{`${nd.n} grievances · ${spec.name(key)} · ${share}% — click to trace`}</title>
+                    <title>{`${shown} grievances · ${spec.name(key)} · ${share}%${picked ? ` of the ${total} selected` : ''} — click to trace`}</title>
                   </g>
                 )
               }
@@ -230,13 +246,13 @@ export function FlowDiagram({ spec, rows, lock, onLock, reveal }: {
                   <g key={key} className={cls} style={{ transform: `translate(${f1(nd.x)}px,${f1(nd.y - off)}px)` }} {...events}>
                     <rect className="fl-hub" x={0} y={0} rx={16} style={{ width: nd.w, height: hh }} />
                     <g className="fl-lab" style={{ transform: `translate(${nd.w / 2}px,${f1(hh / 2)}px)` }}>
-                      <text className="fl-big" y={2} textAnchor="middle"><Tw v={nd.n} /></text>
-                      <text className="fl-hubsub" y={24} textAnchor="middle">{spec.hubSub}</text>
+                      <text className="fl-big" y={2} textAnchor="middle"><Tw v={total} /></text>
+                      <text className="fl-hubsub" y={24} textAnchor="middle">{picked ? `of ${nd.n.toLocaleString('en-IN')} ${spec.hubSub}` : spec.hubSub}</text>
                     </g>
                   </g>
                 )
               }
-              const hh = Math.max(0, nd.h), chip = spec.chip(nd.rows)
+              const hh = Math.max(0, nd.h), chip = spec.chip(picked ? picked.rs[key] ?? [] : nd.rows)
               const tall = nd.h >= 40
               const nameMax = Math.floor((nd.w - 30 - String(nd.n).length * 9) / 7.4)
               return (
@@ -252,9 +268,9 @@ export function FlowDiagram({ spec, rows, lock, onLock, reveal }: {
                       </g>
                     )}
                     {chip > 0 && !tall && <circle className="fl-chipdot" cx={nd.w - 18 - String(nd.n).length * 8.6} cy={0} r={3.5} />}
-                    <text className="fl-count" x={nd.w - 12} y={5} textAnchor="end"><Tw v={nd.n} /></text>
+                    <text className="fl-count" x={nd.w - 12} y={5} textAnchor="end"><Tw v={shown} /></text>
                   </g>
-                  <title>{`${nd.n} grievances · ${spec.name(key)} · ${chip} ${spec.chipLabel} — click to trace`}</title>
+                  <title>{`${shown} grievances · ${spec.name(key)} · ${chip} ${spec.chipLabel}${picked ? ` (of the ${total} selected)` : ''} — click to trace`}</title>
                 </g>
               )
             }))}

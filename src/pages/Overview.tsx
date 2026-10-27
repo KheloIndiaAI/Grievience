@@ -20,6 +20,7 @@ export function OverviewPage() {
   const days = D.map((r) => r.days!).filter((x) => x != null).sort((a, b) => a - b)
   const p90 = days.length ? Math.round(quantile(days, 0.9)) : 0
   const flow = monthlyFlow(rows, ds.asOf)
+  const [first, last] = React.useMemo(() => ds.records.reduce(([a, b], r) => [r.receipt < a ? r.receipt : a, r.receipt > b ? r.receipt : b], ['9999', '0000']), [ds])
   const wait = waitingByOffice(rows)
   const top2 = wait.offices.slice(0, 2)
   const bounced = rows.filter((r) => r.misroutes > 0)
@@ -34,7 +35,7 @@ export function OverviewPage() {
   return (
     <>
       <PageHeader eyebrow="Overview" title="Grievances received, disposed and pending"
-        description={<>CPGRAMS grievances to the Ministry of Youth Affairs & Sports, received 1 Jan – {fmtDate(ds.asOf)}. Click any number to read the grievances behind it.</>} />
+        description={<>CPGRAMS grievances to the Ministry of Youth Affairs & Sports, received {fmtDate(first)} – {fmtDate(last)} (status as of {fmtDate(ds.asOf)}). Click any number to read the grievances behind it.</>} />
 
       <KpiGrid cols={4}>
         <Kpi label="Grievances received" value={fmt(rows.length)} sub={`${fmt(D.length)} disposed · ${fmt(P.length)} pending`}
@@ -72,12 +73,12 @@ export function OverviewPage() {
           description="Received = filed that month. Disposed = closed that month (of any month’s grievances). Click a month to read the grievances received in it."
           action={<Legend items={[{ label: 'Received', color: 'var(--seq-250)' }, { label: 'Disposed', color: 'var(--series-1)' }]} />}
           table={{ columns: ['Month', 'Received', 'Disposed', 'Pending at month end'], rows: flow.map((f) => [monthLong(f.key), f.received, f.disposed, f.open]) }}
-          footer={<>August’s spike is the AIFF U-15 coach campaign: 106 grievances arrived on 1 Aug alone.</>}>
+          footer={flow.some((f) => f.key === '2026-08') ? <>The Aug 2026 spike is the AIFF U-15 coach campaign: 106 grievances arrived on 1 Aug 2026 alone.</> : undefined}>
           <PairColumns height={260} data={flow.map((f) => ({ key: f.key, label: monthLabel(f.key), a: f.received, b: f.disposed }))}
             a={{ label: 'Received', color: 'var(--seq-250)' }} b={{ label: 'Disposed', color: 'var(--series-1)' }}
             onSelect={(k) => panel(`Received in ${monthLong(k)}`, rows.filter((r) => r.month === k), undefined, 'grievance')} />
         </ChartCard>
-        <ChartCard title="Pending at month end" description="Grievances received from 1 Jan 2026 and not yet disposed. Older pending cases are not in this export."
+        <ChartCard title="Pending at month end" description={`Grievances received from ${fmtDate(first)} and not yet disposed at each month end. Older pending cases are not in this export.`}
           table={{ columns: ['Month', 'Pending at month end'], rows: flow.map((f) => [monthLong(f.key), f.open]) }}>
           <TrendChart valueLabel="Pending" area height={260} data={flow.map((f) => ({ key: f.key, label: monthLabel(f.key), value: f.open }))} />
         </ChartCard>
@@ -119,8 +120,8 @@ export function OverviewPage() {
         { term: 'Bounced', def: 'An office that received the grievance sent it back with “Not pertaining to this organisation”. See the Routing & bounces page.' },
         { term: 'File-days', def: 'For every grievance, the days between one action and the next are counted against the office that held the file in that period. Added across all grievances, that is the office’s file-days.' },
         { term: 'Filed again on the same issue', def: 'The same mobile number filed a new grievance on or after the date the earlier one was disposed, and at least 20% of the meaningful words in the two texts are the same.' },
-        { term: 'Pending at month end', def: 'Starts from zero on 1 Jan 2026: grievances pending from 2025 are not in this export.' },
-        { term: 'Campaigns', def: 'The AIFF U-15 coach (210) and STC Kurnool hostel (34) campaigns are included. Switch them off with “Include mass campaigns” above.' },
+        { term: 'Pending at month end', def: 'Starts from zero in the first month of the data: grievances pending from before then are not in this export.' },
+        { term: 'Campaigns', def: 'The AIFF U-15 coach and STC Kurnool hostel campaigns (2026) are included. Switch them off with “Include mass campaigns” above.' },
       ]} />
     </>
   )

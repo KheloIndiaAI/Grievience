@@ -88,10 +88,15 @@
 .gf .flow-summary b{font-family:var(--display);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.4px;margin-right:5px;font-variant-numeric:tabular-nums}
 .gf .flow-summary .bad b{color:var(--red-ink)}
 .gf .flow-summary em{font-style:normal;font-size:12.5px;color:var(--muted-2);flex-basis:100%;margin-top:2px}
+.gf .flow-summary em b.sel{font:inherit;font-weight:700;margin:0;letter-spacing:0;color:var(--accent)}
 .gf .seg-pill{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface);gap:2px}
 .gf .seg-pill button{border:0;background:transparent;padding:7px 13px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--muted);transition:background .2s,color .2s}
 .gf .seg-pill button:hover{color:var(--ink)}
 .gf .seg-pill button.on{background:var(--accent-soft);color:var(--accent)}
+.gf .dept-pick{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-6px 0 16px}
+.gf .dept-pick > span{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.gf .dept-pick .seg-pill{flex-wrap:wrap;max-width:100%}
+.gf .dept-pick button i{font-style:normal;font-weight:500;margin-left:6px;opacity:.65;font-variant-numeric:tabular-nums}
 
 .gf .flow-card{padding:6px 0 0}
 .gf .flow-scroll{overflow-x:auto;padding:0 8px}
@@ -148,10 +153,38 @@
 .gf .flow-foot .legend i{border-radius:3px}
 .gf .lg-chip{display:inline-flex;align-items:center;gap:6px}
 .gf .lg-chip b{font-size:10.5px;color:var(--red-ink);background:var(--red-soft);border:1px solid var(--red-line);border-radius:4px;padding:1px 6px}
-.gf .flow-period{display:flex;align-items:center;gap:12px}
+/* month dock: always on screen on the flow page (portalled to <body>) */
+.gf .flow-now{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:45;display:flex;align-items:center;gap:8px;padding:8px 8px 11px;width:580px;max-width:calc(100vw - 32px);
+  background:var(--surface);color:var(--ink);border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:16px;box-shadow:0 14px 36px -12px rgba(0,0,0,.4);overflow:hidden;animation:fn-in .3s var(--ease)}
+@media (min-width:1024px){.gf .flow-now{left:calc(50% + 130px)}}
+@keyframes fn-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translateX(-50%)}}
+.gf .flow-now svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.gf .flow-now .fn-ic{width:42px;height:42px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--ink);transition:background .2s,color .2s}
+.gf .flow-now .fn-ic:hover{background:var(--accent-soft);color:var(--accent)}
+.gf .flow-now .fn-mid{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1.2;padding:0 6px}
+.gf .flow-now .fn-k{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent)}
+.gf .flow-now b{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.gf .flow-now .fn-n{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gf .flow-now .fn-play{min-width:96px;height:42px;justify-content:center;background:var(--accent);border-color:var(--accent);color:#fff}
+.dark .gf .flow-now .fn-play{color:#131416}
+.gf .flow-now .fn-play.on{background:var(--accent-soft);color:var(--accent)}
+.gf .flow-now .fn-all{height:42px}
+.gf .flow-now .fn-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent-soft)}
+.gf .flow-now .fn-bar i{display:block;height:100%;background:var(--accent);transition:width .5s var(--ease)}
+@media (max-width:720px){
+  .gf .flow-now{left:10px;right:10px;bottom:10px;transform:none;width:auto;max-width:none;gap:6px;animation:fn-in-m .3s var(--ease)}
+  .gf .flow-now b{font-size:18px}
+  .gf .flow-now .fn-ic{width:38px;height:38px}
+  .gf .flow-now .fn-play{min-width:0;padding:0 12px}
+  .gf .flow-now .fn-play span, .gf .flow-now .fn-all span{display:none}
+}
+@keyframes fn-in-m{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.gf .flow-period{display:flex;align-items:center;gap:12px;min-width:0;max-width:100%}
+.gf .flow-period .play{flex-shrink:0}
 .gf .btn.play{min-width:118px}
 .gf .btn.play.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.gf .wk-chips{display:flex;gap:4px}
+.gf .wk-chips{display:flex;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.gf .wk{flex-shrink:0}
 .gf .wk{display:flex;flex-direction:column;align-items:center;gap:5px;border:1px solid transparent;background:transparent;border-radius:8px;padding:6px 8px 5px;min-width:56px;transition:background .2s,border-color .2s}
 .gf .wk:hover{background:var(--surface-2)}
 .gf .wk.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 25%,transparent)}

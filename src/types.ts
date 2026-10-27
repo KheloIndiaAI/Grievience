@@ -129,6 +129,8 @@ export interface Grievance {
 export interface Dataset {
   /** true for the public build: no personal data or free text, re-filing fields precomputed */
   redacted?: boolean
+  /** years whose CPGRAMS pull is incomplete */
+  coverage?: { label: string; pulled: number; listed: number }[]
   asOf: string
   slaDays: number
   offices: Record<string, string>

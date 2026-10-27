@@ -1,9 +1,10 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import type { Grievance } from '@/types'
 import { useStore } from '@/store'
 import { FlowDiagram, useTween, type FlowSpec } from './FlowDiagram'
 import { countBy, median, pct } from '@/data'
-import { MONTHS } from '@/lib/labels'
+import { fmtDate, monthLabel, monthLong } from '@/lib/labels'
 import './flow.css'
 
 const DEADLINE = 21
@@ -14,6 +15,9 @@ const STATUS_COLOR: Record<string, string> = {
   Pending: 'var(--c-1)',
   'Pending over 21 days': 'var(--c-5)',
 }
+const SAI = 'Sent to SAI'
+const ownerOf = (r: Grievance) => (r.sai ? SAI : r.owner)
+const trunc = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s)
 const statusOf = (r: Grievance) => (r.disposed ? ((r.days ?? 999) <= DEADLINE ? STATUS[0] : STATUS[1]) : (r.pendingAge ?? 0) > DEADLINE ? STATUS[3] : STATUS[2])
 const stuck = (r: Grievance) => !r.disposed && (r.pendingAge ?? 0) > DEADLINE
 
@@ -26,6 +30,8 @@ const I = {
   close: <svg viewBox="0 0 20 20"><path d="M5 5l10 10M15 5L5 15" /></svg>,
   play: <svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4Z" /></svg>,
   pause: <svg viewBox="0 0 20 20"><path d="M7 4v12M13 4v12" /></svg>,
+  prev: <svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>,
+  next: <svg viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5" /></svg>,
 }
 
 function topKeys(rows: Grievance[], f: (r: Grievance) => string | null, n: number, other: string) {
@@ -43,21 +49,21 @@ const statsOf = (rs: Grievance[]): Stats => {
   }
 }
 
-function Summary({ s }: { s: Stats }) {
+function Summary({ s, of }: { s: Stats; of: string | null }) {
   return (
     <div className="flow-summary">
       <span><b>{useTween(s.pending)}</b> pending</span>
       <span className="bad"><b>{useTween(s.stuck)}</b> pending over 21 days</span>
       <span><b>{useTween(s.disposed ? Math.round(pct(s.on, s.disposed)) : 0)}</b>% disposed within 21 days</span>
       <span><b>{useTween(s.med ?? 0)}</b> days to dispose (median)</span>
-      <em>Click any source, office or status to follow its grievances.</em>
+      <em>{of ? <>Numbers are for the <b className="sel">{s.n.toLocaleString('en-IN')}</b> grievances through <b className="sel">{of}</b>. Click it again, or Clear, to see all.</> : 'Click any source, office or status to follow its grievances; the numbers change to match.'}</em>
     </div>
   )
 }
 
 interface Insight { tag: string; icon: React.ReactNode; color: string; key: string; title: string; body: string }
 
-function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind }: {
+function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind, lock: lockProp, onLock, deep, picker }: {
   id: string
   crumb: string
   title: (n: React.ReactNode) => React.ReactNode
@@ -66,9 +72,29 @@ function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind }: {
   period: string
   monthBar: React.ReactNode
   kind: { a: string; g: string }
+  /** controlled lock (the Ministry flow shares it with the page to pick the in-depth flow) */
+  lock?: string | null
+  onLock?: (k: string | null) => void
+  /** label of the in-depth flow below for an office key, if there is one */
+  deep?: (key: string) => string | null
+  picker?: React.ReactNode
 }) {
   const { showCases } = useStore()
-  const [lock, setLock] = React.useState<string | null>(null)
+  const [ownLock, setOwnLock] = React.useState<string | null>(null)
+  const lock = lockProp !== undefined ? lockProp : ownLock
+  const setLock = onLock ?? setOwnLock
+  // a click anywhere except a box, the selection card or the month strip clears the selection
+  React.useEffect(() => {
+    if (!lock) return
+    const away = (e: MouseEvent) => {
+      const t = e.target as Element | null
+      if (!t?.closest || document.querySelector('[role="dialog"]')) return
+      if (t.closest('.fl-node, .flow-panel, .dept-pick, .flow-period, .flow-now, [data-radix-popper-content-wrapper]')) return
+      setLock(null)
+    }
+    document.addEventListener('click', away)
+    return () => document.removeEventListener('click', away)
+  }, [lock, setLock])
   const [revealed, setRevealed] = React.useState(true)
   React.useEffect(() => { const t = setTimeout(() => setRevealed(false), 1600); return () => clearTimeout(t) }, [])
   const all = statsOf(rows)
@@ -103,9 +129,10 @@ function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind }: {
         <div>
           <div className="crumb" style={{ color: 'var(--accent)' }}>{crumb} · {period}</div>
           <h2 className="flow-title">{title(<span className="hl">{nTween} grievances</span>)}</h2>
-          <Summary s={all} />
+          <Summary s={lock ? ls : all} of={lock ? spec.name(lock) : null} />
         </div>
       </div>
+      {picker}
 
       <div className="card flow-card">
         <div className="flow-swipe">Swipe sideways to see the full flow {I.arrow}</div>
@@ -135,7 +162,7 @@ function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind }: {
                   { label: 'Disposed', rows: lockRows.filter((r) => r.disposed) },
                   { label: 'All', rows: lockRows },
                 ].filter((t) => t.rows.length) })}>{I.list}Open these {ls.n} grievances {I.arrow}</button>
-                {lock === 'g:Sent to SAI' && <button className="btn btn-ghost" onClick={() => document.getElementById('flow-sai')?.scrollIntoView({ behavior: 'smooth' })}>See the SAI flow {I.arrow}</button>}
+                {deep && deep(lock) && <button className="btn btn-ghost" onClick={() => document.getElementById('flow-dept')?.scrollIntoView({ behavior: 'smooth' })}>See {deep(lock)} in depth {I.arrow}</button>}
                 <button className="btn btn-ghost" onClick={() => setLock(null)}>{I.close}Clear</button>
               </div>
             </div>
@@ -170,14 +197,15 @@ function FlowSection({ id, crumb, title, spec, rows, period, monthBar, kind }: {
 }
 
 export function FlowPage() {
-  const { rows: allRows } = useStore()
+  const { rows: allRows, office } = useStore()
   const months = React.useMemo(() => [...new Set(allRows.map((r) => r.month))].sort(), [allRows])
   const [month, setMonth] = React.useState<string | null>(null)
   const [playing, setPlaying] = React.useState(false)
   React.useEffect(() => {
     if (!playing) return
     const seq = [...months, null]
-    let i = 0
+    // resume after a paused month, otherwise start from the first month
+    let i = month ? months.indexOf(month) + 1 : 0
     setMonth(seq[i++])
     const t = setInterval(() => {
       if (i >= seq.length) { setPlaying(false); clearInterval(t); return }
@@ -186,13 +214,28 @@ export function FlowPage() {
     return () => clearInterval(t)
   }, [playing]) // eslint-disable-line react-hooks/exhaustive-deps
   const rows = React.useMemo(() => (month ? allRows.filter((r) => r.month === month) : allRows), [allRows, month])
-  const period = month ? `received in ${MONTHS[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}` : 'received Jan – Oct 2026'
+  const idx = month ? months.indexOf(month) : -1
+  // previous / next month; stepping past either end goes back to all months
+  const step = (d: number) => {
+    setPlaying(false)
+    if (idx < 0) return setMonth(d > 0 ? months[0] : months[months.length - 1])
+    const j = idx + d
+    setMonth(j < 0 || j >= months.length ? null : months[j])
+  }
+  // keep the current month's chip in view in every month strip
+  React.useEffect(() => {
+    document.querySelectorAll<HTMLElement>('.gf .wk-chips').forEach((strip) => {
+      const on = strip.querySelector<HTMLElement>('.wk.on')
+      if (on) strip.scrollTo({ left: on.offsetLeft - strip.clientWidth / 2 + on.offsetWidth / 2, behavior: 'smooth' })
+    })
+  }, [month])
+  const [first, last] = React.useMemo(() => allRows.reduce(([a, b], r) => [r.receipt < a ? r.receipt : a, r.receipt > b ? r.receipt : b], ['9999', '0000']), [allRows])
+  const period = month ? `received in ${monthLong(month)}` : allRows.length ? `received ${fmtDate(first)} – ${fmtDate(last)}` : 'no grievances in the selected period'
 
   /* ---------------- Ministry flow ---------------- */
+  const off = React.useMemo(() => topKeys(allRows, ownerOf, 7, 'Other offices'), [allRows])
   const ministry = React.useMemo<FlowSpec>(() => {
     const src = topKeys(allRows, (r) => r.source, 5, 'Other sources')
-    const ownerOf = (r: Grievance) => (r.sai ? 'Sent to SAI' : r.owner)
-    const off = topKeys(allRows, ownerOf, 7, 'Other offices')
     return {
       heads: ['Came from', 'PG desk', 'Ministry office', 'Current status'],
       hubSub: 'received',
@@ -203,7 +246,14 @@ export function FlowPage() {
       col0: src.keys.map((k) => 'a:' + k), col2: off.keys.map((k) => 'g:' + k), col3: STATUS.map((s) => 's:' + s),
       statusColor: STATUS_COLOR, name: (k) => (k === 'h' ? 'PG desk' : k.slice(2)), chip: (rs) => rs.filter(stuck).length, chipLabel: 'over 21d', dotDivisor: 16,
     }
-  }, [allRows])
+  }, [allRows, off])
+
+  /* ---- which office the second (in-depth) flow shows: SAI until an office is clicked above ---- */
+  const [mLock, setMLock] = React.useState<string | null>(null)
+  const [dept, setDept] = React.useState(SAI)
+  const lockMinistry = (k: string | null) => { setMLock(k); if (k?.startsWith('g:')) setDept(k.slice(2)) }
+  const pickDept = (d: string) => { setDept(d); setMLock('g:' + d) }
+  const deptOf = (r: Grievance) => (off.has.has(ownerOf(r)) ? ownerOf(r) : 'Other offices')
 
   /* ---------------- SAI flow ---------------- */
   const saiAll = React.useMemo(() => allRows.filter((r) => r.sai), [allRows])
@@ -224,6 +274,44 @@ export function FlowPage() {
   }, [saiAll])
   const saiRows = React.useMemo(() => rows.filter((r) => r.sai), [rows])
 
+  /* ---------------- any other office: who sent it → office → what it was about → status ---------------- */
+  const deptAll = React.useMemo(() => allRows.filter((r) => deptOf(r) === dept), [allRows, dept, off]) // eslint-disable-line react-hooks/exhaustive-deps
+  const deptSpec = React.useMemo<FlowSpec>(() => {
+    const others = dept === 'Other offices'
+    const senderOf = (r: Grievance) => {
+      const from = r.steps.find((s) => s.to === r.ownerCode)?.from
+      return !from || from === 'C1TZN' ? 'Directly from citizen' : office(from)
+    }
+    const midOf = (r: Grievance) => (others ? r.owner : r.theme)
+    const snd = topKeys(deptAll, senderOf, 5, 'Other senders')
+    const mid = topKeys(deptAll, midOf, others ? 8 : 7, others ? 'All other offices' : 'Other themes')
+    return {
+      heads: ['Sent by', trunc(others ? 'Other offices' : dept, 26), others ? 'Office' : 'Nature of case', 'Current status'],
+      hubSub: others ? 'in smaller offices' : 'handled here',
+      pathOf: (r) => [
+        'a:' + (snd.has.has(senderOf(r)) ? senderOf(r) : 'Other senders'), 'h',
+        'g:' + (mid.has.has(midOf(r)) ? midOf(r) : others ? 'All other offices' : 'Other themes'), 's:' + statusOf(r),
+      ],
+      col0: snd.keys.map((k) => 'a:' + k), col2: mid.keys.map((k) => 'g:' + k), col3: STATUS.map((s) => 's:' + s),
+      statusColor: STATUS_COLOR, name: (k) => (k === 'h' ? dept : k.slice(2)), chip: (rs) => rs.filter(stuck).length, chipLabel: 'over 21d',
+      dotDivisor: Math.max(3, Math.round(deptAll.length / 250)),
+    }
+  }, [deptAll, dept, office])
+  const deptRows = React.useMemo(() => rows.filter((r) => deptOf(r) === dept), [rows, dept, off]) // eslint-disable-line react-hooks/exhaustive-deps
+  const offices = ministry.col2.map((k) => k.slice(2))
+  const picker = (
+    <div className="dept-pick">
+      <span>Show in depth</span>
+      <div className="seg-pill" role="group" aria-label="Office shown in depth">
+        {offices.map((d) => (
+          <button key={d} className={d === dept ? 'on' : ''} aria-pressed={d === dept} onClick={() => pickDept(d)}>
+            {d === SAI ? 'SAI' : d}<i>{allRows.filter((r) => deptOf(r) === d).length.toLocaleString('en-IN')}</i>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
   const maxM = Math.max(1, ...months.map((m) => allRows.filter((r) => r.month === m).length))
   const monthBar = (
     <div className="flow-period">
@@ -235,7 +323,7 @@ export function FlowPage() {
           return (
             <button key={m} className={`wk${month === m ? ' on' : ''}${playing && month === m ? ' run' : ''}`} title={`${n} received`} onClick={() => { setPlaying(false); setMonth(m) }}>
               <span className="wk-bar"><i style={{ height: `${Math.max(8, (n / maxM) * 100)}%` }} /></span>
-              <span className="wk-lbl">{MONTHS[Number(m.slice(5, 7)) - 1]}</span>
+              <span className="wk-lbl">{monthLabel(m)}</span>
             </button>
           )
         })}
@@ -244,13 +332,40 @@ export function FlowPage() {
   )
 
   return (
-    <div className="gf -mx-4 -mt-6 space-y-10 px-4 pb-4 pt-6 lg:-mx-8 lg:px-8" style={{ background: 'var(--bg)' }}>
+    <div className="gf -mx-4 -mt-6 space-y-10 px-4 pb-28 pt-6 lg:-mx-8 lg:px-8" style={{ background: 'var(--bg)' }}>
       <FlowSection id="flow-ministry" crumb="Ministry" spec={ministry} rows={rows} period={period} monthBar={monthBar} kind={{ a: 'source', g: 'office' }}
+        lock={mLock} onLock={lockMinistry} deep={(k) => (k.startsWith('g:') ? (k === 'g:' + SAI ? 'SAI' : k.slice(2)) : null)}
         title={(n) => <>Where {n} came from, and where they stand today</>} />
-      <FlowSection id="flow-sai" crumb="Sports Authority of India" spec={sai} rows={saiRows} period={period} monthBar={monthBar} kind={{ a: 'desk', g: 'SAI office' }}
-        title={(n) => <>How {n} moved through SAI</>} />
+      {dept === SAI ? (
+        <FlowSection key={SAI} id="flow-dept" crumb="Sports Authority of India" spec={sai} rows={saiRows} period={period} monthBar={monthBar} kind={{ a: 'desk', g: 'SAI office' }}
+          picker={picker} title={(n) => <>How {n} moved through SAI</>} />
+      ) : (
+        <FlowSection key={dept} id="flow-dept" crumb={dept} spec={deptSpec} rows={deptRows} period={period} monthBar={monthBar}
+          kind={dept === 'Other offices' ? { a: 'sender', g: 'office' } : { a: 'sender', g: 'theme' }} picker={picker}
+          title={(n) => (dept === 'Other offices' ? <>How {n} spread across the smaller offices</> : <>Who sent {dept} its {n}, what they were about, and where they stand</>)} />
+      )}
+      {/* month dock, only while a month is picked or playing: rendered on <body> so it stays on screen
+          (the page wrapper's animation would pin a fixed element to the page) */}
+      {month && createPortal(
+        <div className="gf">
+          <div className="flow-now" role="region" aria-label="Month shown in the flows">
+            <button className="fn-ic" onClick={() => step(-1)} aria-label="Previous month" title="Previous month">{I.prev}</button>
+            <div className="fn-mid" aria-live="polite">
+              <span className="fn-k">{playing ? 'Playing' : 'Showing'}</span>
+              <b>{monthLong(month)}</b>
+              <span className="fn-n">{rows.length.toLocaleString('en-IN')} received · month {idx + 1} of {months.length}</span>
+            </div>
+            <button className="fn-ic" onClick={() => step(1)} aria-label="Next month" title="Next month">{I.next}</button>
+            <button className={`btn btn-sm fn-play${playing ? ' on' : ''}`} onClick={() => setPlaying((p) => !p)}>{playing ? I.pause : I.play}<span>{playing ? 'Pause' : 'Play'}</span></button>
+            <button className="btn btn-ghost btn-sm fn-all" onClick={() => { setPlaying(false); setMonth(null) }}>{I.close}<span>All months</span></button>
+            <span className="fn-bar" aria-hidden><i style={{ width: `${((idx + 1) / months.length) * 100}%` }} /></span>
+          </div>
+        </div>,
+        document.body,
+      )}
       <p className="muted" style={{ fontSize: 12.5 }}>
-        Office = the office that disposed of the grievance, or holds it now if pending. Grievances sent to SAI appear as one “Sent to SAI” box in the Ministry flow and are broken down in the SAI flow.
+        Office = the office that disposed of the grievance, or holds it now if pending. Click an office in the Ministry flow (or pick one above the second flow) to see it in depth:
+        SAI is broken down by the Ministry desk that sent it and the SAI office that handled it; every other office by who sent it the grievance and what the grievances were about.
         Current status: disposed within / after 21 days of receipt, or pending (over 21 days marked red).
       </p>
     </div>

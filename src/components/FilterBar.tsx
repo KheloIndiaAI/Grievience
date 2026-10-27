@@ -91,6 +91,8 @@ function DateRange() {
   const { filters, setFilters, ds } = useStore()
   const min = React.useMemo(() => ds.records.reduce((m, r) => (r.receipt < m ? r.receipt : m), '9999'), [ds])
   const max = ds.asOf
+  const last = React.useMemo(() => ds.records.reduce((m, r) => (r.receipt > m ? r.receipt : m), '0000'), [ds])
+  const years = React.useMemo(() => [...new Set(ds.records.map((r) => r.receipt.slice(0, 4)))].sort(), [ds])
   const shift = (days: number) => {
     const d = new Date(max + 'T00:00:00')
     d.setDate(d.getDate() - days)
@@ -98,10 +100,9 @@ function DateRange() {
   }
   const presets = [
     { label: 'Whole period', from: min, to: max },
-    { label: 'Last 30 days', from: shift(29), to: max },
-    { label: 'Last 90 days', from: shift(89), to: max },
-    { label: 'Jan – Jun 2026', from: '2026-01-01', to: '2026-06-30' },
-    { label: 'Jul – Oct 2026', from: '2026-07-01', to: max },
+    { label: 'Last 30 days received', from: shift(29), to: max },
+    { label: 'Last 90 days received', from: shift(89), to: max },
+    ...years.map((y) => ({ label: `Received in ${y}`, from: `${y}-01-01`, to: y === last.slice(0, 4) ? max : `${y}-12-31` })),
   ]
   const isAll = filters.from === min && filters.to === max
   const cur = presets.find((p) => p.from === filters.from && p.to === filters.to)
