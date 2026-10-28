@@ -96,7 +96,7 @@ function SidebarFooter({ ds }: { ds: Dataset }) {
       {ds.redacted && (
         <div className="mt-2 flex items-start gap-1.5 border-t pt-2">
           <ShieldCheck className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[var(--status-good)]" />
-          <span>Public view. Complainant names, contact details and the text of grievances and replies are not published.</span>
+          <span>Public view. Complainant names and contact details are not published; grievance and reply text is shown with names, numbers, addresses and IDs removed.</span>
         </div>
       )}
     </div>

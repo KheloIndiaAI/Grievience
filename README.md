@@ -25,8 +25,16 @@ only as anonymous per-release codes (`cid`), and the re-filing fields are precom
 file is produced offline from the internal CPGRAMS export, and the internal export must never be
 committed here.
 
-`scripts/check_pii.py` runs in CI on the dataset and on the built `dist/`. Anything that looks like
-a mobile number, email, Aadhaar or PAN, or a personal-data field, blocks the deploy.
+`public/data/texts.json` holds the grievance and reply text, keyed by registration number, with personal
+details scrubbed offline: the complainant's own name and address words, numbers of 6+ digits (phones,
+Aadhaar, PIN codes, accounts), emails, PAN/IFSC and other long IDs, and names after phrases such as
+"my name is", "S/o", "Shri" or "Regards" are replaced with `[name]`, `[number]`, `[address]`, `[email]`
+or `[id]`. Officer remarks are not published. The dashboard fetches this file only when a grievance list
+or a grievance is first opened. Free text can still mention places or circumstances that identify
+someone; scrubbing reduces that risk but cannot remove it entirely.
+
+`scripts/check_pii.py` runs in CI on the dataset and on the built `dist/` (which includes `texts.json`).
+Anything that looks like a mobile number, email, Aadhaar or PAN, or a personal-data field, blocks the deploy.
 
 ## Deploy
 

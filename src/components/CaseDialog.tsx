@@ -12,6 +12,7 @@ import { fmt } from '@/data'
 import { fmtDate } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 import { grievanceGist } from './CasePanel'
+import { useTexts } from '@/lib/texts'
 
 function KV({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
   return (
@@ -40,6 +41,7 @@ export function CaseDialog({ item, onClose, onPrev, onNext, position }: {
   position?: string
 }) {
   const { office, ds, open } = useStore()
+  const texts = useTexts(ds)
   const hasText = item?.description != null || item?.reply != null
   const saiSet = React.useMemo(() => new Set(ds.saiOffices), [ds])
   React.useEffect(() => {
@@ -95,7 +97,18 @@ export function CaseDialog({ item, onClose, onPrev, onNext, position }: {
                   {!hasText && (
                     <div className="flex items-start gap-2 rounded-lg border bg-muted/30 px-4 py-3 text-[13px] text-muted-foreground">
                       <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-good)]" />
-                      <span>The grievance and reply text are not published on this public dashboard. Routing, timing and outcome are shown below{item.disposed ? <> · reply classified as <b className="text-foreground">{item.replyType}</b></> : null}.</span>
+                      <span>
+                        {texts === 'loading' ? 'Loading the grievance text…'
+                          : texts === 'ready' ? 'No readable text for this grievance (scanned or blank petition).'
+                          : 'The grievance and reply text are not published on this public dashboard.'}
+                        {texts !== 'loading' && <> Routing, timing and outcome are shown below{item.disposed ? <> · reply classified as <b className="text-foreground">{item.replyType}</b></> : null}.</>}
+                      </span>
+                    </div>
+                  )}
+                  {hasText && ds.redacted && (
+                    <div className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                      <ShieldCheck className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[var(--status-good)]" />
+                      <span>Names, phone numbers, addresses, emails and ID numbers have been removed from this text and shown as [name], [number], [address], [email] or [id].</span>
                     </div>
                   )}
                   {hasText && <div className="grid gap-3 md:grid-cols-2">

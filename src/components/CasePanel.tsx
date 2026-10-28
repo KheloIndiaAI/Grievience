@@ -11,6 +11,7 @@ import { DaysPill, StatusPill } from './kit'
 import { downloadCSV, fmt, toExportRow } from '@/data'
 import { fmtDate } from '@/lib/labels'
 import { cn } from '@/lib/utils'
+import { useTexts } from '@/lib/texts'
 
 export const grievanceGist = (r: Grievance, max = 260) =>
   (r.description ?? '')
@@ -27,7 +28,8 @@ const SORTS = {
 }
 
 export function CasePanel({ spec, onClose }: { spec: CasePanelSpec | null; onClose: () => void }) {
-  const { open } = useStore()
+  const { open, ds } = useStore()
+  useTexts(ds, !!spec) // list previews switch to the grievance text once it has loaded
   const tabs = spec?.tabs ?? (spec ? [{ label: 'All', rows: spec.rows ?? [] }] : [])
   const [tab, setTab] = React.useState(0)
   const [q, setQ] = React.useState('')
