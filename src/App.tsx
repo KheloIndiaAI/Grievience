@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {
-  LayoutDashboard, Tags, Route, Building2, Search, Workflow, Menu, Moon, Sun, Database, Printer, ShieldCheck,
+  LayoutDashboard, Tags, Route, Building2, Search, Workflow, Menu, Moon, Sun, Database, Printer, ShieldCheck, LogOut,
 } from 'lucide-react'
 import type { Dataset, Grievance } from './types'
 import { loadData, fmt } from './data'
@@ -12,6 +12,7 @@ import { Dialog, SheetContent, DialogTitle } from './components/ui/dialog'
 import { Button } from './components/ui/button'
 import { cn } from './lib/utils'
 import { fmtDate } from './lib/labels'
+import { signOut } from './lib/auth'
 
 import { OverviewPage } from './pages/Overview'
 import { NaturePage } from './pages/Nature'
@@ -31,7 +32,7 @@ const readHash = (): PageId => {
   return PAGES.some((p) => p.id === h) ? h : 'overview'
 }
 
-function Brand() {
+export function Brand() {
   return (
     <div className="flex items-center gap-3 px-4 py-4">
       <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0f2a4f] text-white shadow-sm">
@@ -228,6 +229,9 @@ export function App() {
                   </span>
                   <Hint label={dark ? 'Light theme' : 'Dark theme'}>
                     <Button variant="ghost" size="icon-sm" onClick={() => setDark((v) => !v)} aria-label="Toggle theme">{dark ? <Sun /> : <Moon />}</Button>
+                  </Hint>
+                  <Hint label="Sign out">
+                    <Button variant="ghost" size="icon-sm" onClick={signOut} aria-label="Sign out"><LogOut /></Button>
                   </Hint>
                 </div>
               </div>

@@ -3,9 +3,12 @@ import ReactDOM from 'react-dom/client'
 import '@fontsource-variable/inter'
 import './index.css'
 import { App } from './App'
+import { Gate } from './components/Login'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Gate>
+      <App />
+    </Gate>
   </React.StrictMode>,
 )
